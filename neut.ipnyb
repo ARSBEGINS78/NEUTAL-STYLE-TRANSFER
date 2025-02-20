@@ -1,0 +1,91 @@
+import tensorflow as tf
+import numpy as np
+import matplotlib.pyplot as plt
+import PIL.Image
+from tensorflow.keras.applications import vgg19
+from tensorflow.keras.models import Model
+
+def load_and_process_image(image_path, max_dim=512):
+    img = PIL.Image.open(image_path)
+    img = img.convert('RGB')
+    img = img.resize((max_dim, max_dim))
+    img = np.array(img, dtype=np.float32)
+    img = np.expand_dims(img, axis=0)
+    img = vgg19.preprocess_input(img)
+    return img
+
+def deprocess_image(img):
+    img = img.reshape((512, 512, 3))
+    img[:, :, 0] += 103.939
+    img[:, :, 1] += 116.779
+    img[:, :, 2] += 123.68
+    img = img[:, :, ::-1]  # Convert from BGR to RGB
+    img = np.clip(img, 0, 255).astype('uint8')
+    return img
+
+def build_model():
+    vgg = vgg19.VGG19(weights='imagenet', include_top=False)
+    vgg.trainable = False
+    return vgg
+
+def compute_loss(model, content_image, style_image):
+    content_layers = ['block5_conv2']
+    style_layers = ['block1_conv1', 'block2_conv1', 'block3_conv1', 'block4_conv1', 'block5_conv1']
+    content_weight = 1e4
+    style_weight = 1e-2
+
+    outputs = {layer.name: layer.output for layer in model.layers}
+    feature_extractor = Model(inputs=model.input, outputs=outputs)
+    
+    content_features = feature_extractor(content_image)['block5_conv2']
+    style_features = [feature_extractor(style_image)[layer] for layer in style_layers]
+    
+    def gram_matrix(features):
+        channels = int(features.shape[-1])
+        features = tf.reshape(features, [-1, channels])
+        return tf.matmul(features, features, transpose_a=True)
+    
+    style_grams = [gram_matrix(feature) for feature in style_features]
+    
+    def loss_fn(output):
+        content_output = output['block5_conv2']
+        style_outputs = [output[layer] for layer in style_layers]
+        
+        content_loss = tf.reduce_mean(tf.square(content_output - content_features))
+        style_loss = sum(tf.reduce_mean(tf.square(gram_matrix(style) - gram)) for style, gram in zip(style_outputs, style_grams))
+        
+        return content_weight * content_loss + style_weight * style_loss
+    
+    return loss_fn
+
+def style_transfer(content_path, style_path, iterations=1000, learning_rate=5.0):
+    content_image = load_and_process_image(content_path)
+    style_image = load_and_process_image(style_path)
+    model = build_model()
+    loss_fn = compute_loss(model, content_image, style_image)
+    
+    generated_image = tf.Variable(content_image, dtype=tf.float32)
+    optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
+    
+    @tf.function
+    def train_step():
+        with tf.GradientTape() as tape:
+            loss = loss_fn(model(generated_image))
+        grads = tape.gradient(loss, generated_image)
+        optimizer.apply_gradients([(grads, generated_image)])
+        return loss
+    
+    for i in range(iterations):
+        loss = train_step()
+        if i % 100 == 0:
+            print(f"Iteration {i}, Loss: {loss.numpy()}")
+    
+    output_img = deprocess_image(generated_image.numpy())
+    plt.imshow(output_img)
+    plt.axis('off')
+    plt.show()
+
+if __name__ == "__main__":
+    content_path = input("Enter the content image path: ")
+    style_path = input("Enter the style image path: ")
+    style_transfer(content_path, style_path)
