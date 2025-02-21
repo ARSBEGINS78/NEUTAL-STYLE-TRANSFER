@@ -42,4 +42,16 @@ Loads and preprocesses content and style images.
 Builds the VGG19 model and computes the loss function.
 Initializes generated_image as a trainable variable (starting from content image).
 Uses Adam optimizer for gradient-based optimization.
+Displaying the Final Image:>
+Converts generated_image back to a displayable format and shows the final output.
+Loads and preprocesses content and style images.
+Builds the VGG19 model and computes the loss function.
+Initializes generated_image as a trainable variable (starting from content image).
+Uses Adam optimizer for gradient-based optimization.
 Optimization Loop:>
+Uses TensorFlow's automatic differentiation (tf.GradientTape()) to compute gradients.
+Updates generated_image using gradient descent.
+Runs the training loop for iterations steps.
+Prints the loss every 100 iterations.
+Handling Button Click:>
+Calls style_transfer() when the button is clicked.
