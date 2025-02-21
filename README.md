@@ -30,5 +30,16 @@ Builds a feature extractor model.
 Extracts the content image’s feature map from block5_conv2.
 Extracts style features from multiple layers.
 Computing Style Representation Using Gram Matrix:
-
-Extracting Features
+The Gram matrix represents the style of an image by computing the correlations between feature maps.
+The feature map is reshaped into a 2D tensor ([-1, channels]), and tf.matmul computes the Gram matrix.
+Stores the Gram matrices for the style image.
+Defining the Loss Function:
+Computes content loss as the mean squared error between the generated and original content features.
+Computes style loss as the sum of mean squared errors between the Gram matrices of the generated and style image.
+Returns the total loss function.
+Performing Style Transfer:>
+Loads and preprocesses content and style images.
+Builds the VGG19 model and computes the loss function.
+Initializes generated_image as a trainable variable (starting from content image).
+Uses Adam optimizer for gradient-based optimization.
+Optimization Loop:>
