@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import PIL.Image
 from tensorflow.keras.applications import vgg19
 from tensorflow.keras.models import Model
+import ipywidgets as widgets
+from IPython.display import display
 
 def load_and_process_image(image_path, max_dim=512):
     img = PIL.Image.open(image_path)
@@ -85,7 +87,20 @@ def style_transfer(content_path, style_path, iterations=1000, learning_rate=5.0)
     plt.axis('off')
     plt.show()
 
-if __name__ == "__main__":
-    content_path = input("Enter the content image path: ")
-    style_path = input("Enter the style image path: ")
-    style_transfer(content_path, style_path)
+def run_style_transfer():
+    content_path = widgets.Text(description="Content Image Path:")
+    style_path = widgets.Text(description="Style Image Path:")
+    iterations = widgets.IntText(value=1000, description="Iterations:")
+    learning_rate = widgets.FloatText(value=5.0, description="Learning Rate:")
+    button = widgets.Button(description="Run")
+    output = widgets.Output()
+    
+    def on_button_clicked(b):
+        with output:
+            output.clear_output()
+            style_transfer(content_path.value, style_path.value, iterations.value, learning_rate.value)
+    
+    button.on_click(on_button_clicked)
+    display(content_path, style_path, iterations, learning_rate, button, output)
+
+run_style_transfer()
